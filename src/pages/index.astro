@@ -21,51 +21,176 @@ const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Surabaya Suka Lapor - Uji Fondasi (Fase 0)</title>
+    <title>Surabaya Suka Lapor - Uji Fondasi & Sinkronisasi Login</title>
   </head>
   <body class="bg-gray-100 text-gray-900 p-4 md:p-8 font-sans">
     <div class="max-w-4xl mx-auto space-y-6">
       
-      <!-- Header -->
+      <!-- Top Navigation & Header -->
       <header class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 class="text-2xl font-bold">Surabaya Suka Lapor</h1>
             <p class="text-sm text-gray-600 mt-1">
-              Fase 0: Pengujian Fondasi (Astro SSR, Tailwind CSS, PostgreSQL, Firebase Auth)
+              Platform Laporan Jalan Rusak Surabaya &bull; Mode Publik & Sinkronisasi Akun
             </p>
           </div>
-          <a
-            href="/api/health"
-            target="_blank"
-            class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded font-mono"
-          >
-            GET /api/health ↗
-          </a>
+
+          <!-- Auth Status Quick Bar di Header -->
+          <div class="flex items-center gap-3">
+            <!-- Tampilan jika belum login (Pengunjung Publik) -->
+            <div id="nav-guest" class="flex items-center gap-2">
+              <span class="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded border border-gray-300">
+                Pengunjung Publik
+              </span>
+              <button
+                id="nav-btn-login"
+                type="button"
+                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded cursor-pointer transition"
+              >
+                Masuk
+              </button>
+            </div>
+
+            <!-- Tampilan jika sudah login -->
+            <div id="nav-user" class="hidden items-center gap-2">
+              <span class="text-xs text-gray-700">
+                Masuk sebagai: <strong id="nav-user-name" class="font-bold text-gray-900">...</strong>
+              </span>
+              <button
+                id="nav-btn-logout"
+                type="button"
+                class="bg-red-600 hover:bg-red-700 text-white text-xs px-2.5 py-1 rounded cursor-pointer transition"
+              >
+                Keluar
+              </button>
+            </div>
+
+            <a
+              href="/api/health"
+              target="_blank"
+              class="text-xs bg-gray-200 hover:bg-gray-300 px-2.5 py-1.5 rounded font-mono"
+              title="Periksa kesehatan API dan database"
+            >
+              /api/health ↗
+            </a>
+          </div>
         </div>
       </header>
 
-      <!-- 1. Status Astro & Tailwind CSS -->
-      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
-        <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
-          <span>1. Astro (SSR Mode) & Tailwind CSS</span>
-          <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
-            Terhubung & Aktif
-          </span>
-        </h2>
-        <ul class="text-sm space-y-1 text-gray-700">
-          <li>• <strong>Framework:</strong> Astro 7 (Node.js Adapter - SSR Standalone)</li>
-          <li>• <strong>Styling:</strong> Tailwind CSS v4 terkompilasi dan berjalan</li>
-          <li>• <strong>Rendering Mode:</strong> Server-Side Rendering (SSR dinamis per request)</li>
-          <li>• <strong>Waktu Server:</strong> {new Date().toLocaleString('id-ID')}</li>
-        </ul>
+      <!-- Banner Akses Publik -->
+      <div class="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
+        <div>
+          <span class="font-bold">Akses Tanpa Login:</span> Halaman publik dapat diakses bebas oleh semua warga tanpa wajib login. Login hanya digunakan untuk mencatat identitas pelapor dan sinkronisasi ke database.
+        </div>
+      </div>
+
+      <!-- 1. Panel Autentikasi Google & Sinkronisasi Database -->
+      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <span>Autentikasi Pengguna & Sinkronisasi Database</span>
+            <span id="auth-status-badge" class="bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5 rounded font-medium">
+              Pengunjung Publik
+            </span>
+          </h2>
+        </div>
+
+        <p class="text-xs text-gray-600">
+          Alur kerja: Pengguna login dengan Google via Firebase Client &rarr; ID Token dikirim ke server Astro &rarr; Server memverifikasi token dengan Firebase Admin SDK &rarr; Server membuat/memperbarui baris di tabel <code>users</code> PostgreSQL berdasarkan <code>firebase_uid</code>.
+        </p>
+
+        <!-- Status Warning jika env belum lengkap -->
+        <div id="auth-unconfigured" class="hidden text-xs text-amber-800 bg-amber-50 p-3 rounded border border-amber-200">
+          Variabel <code>PUBLIC_FIREBASE_API_KEY</code> atau <code>PUBLIC_FIREBASE_PROJECT_ID</code> masih kosong di file <code>.env</code>.
+        </div>
+
+        <!-- Box Konten Login / Status User -->
+        <div class="p-4 bg-gray-50 border border-gray-200 rounded">
+          
+          <!-- State 1: Belum Login -->
+          <div id="guest-panel" class="space-y-3">
+            <p class="text-sm text-gray-700">
+              Anda saat ini sedang menjelajah sebagai <strong>Pengunjung Publik</strong>.
+            </p>
+            <button
+              id="main-btn-login"
+              type="button"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm cursor-pointer transition flex items-center gap-2 disabled:opacity-50"
+            >
+              <span>Masuk dengan Akun Google</span>
+            </button>
+          </div>
+
+          <!-- State 2: Sudah Login & Tersinkron -->
+          <div id="user-panel" class="hidden space-y-4">
+            <div class="flex items-center gap-4 p-3 bg-white border border-gray-200 rounded">
+              <img id="user-photo" src="" alt="Avatar" class="w-12 h-12 rounded-full border border-gray-300 object-cover" />
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <p id="user-name" class="font-bold text-base text-gray-900"></p>
+                  <span id="sync-badge" class="bg-green-100 text-green-800 text-[11px] px-2 py-0.5 rounded font-medium">
+                    ✓ Tersinkron ke PostgreSQL
+                  </span>
+                </div>
+                <p id="user-email" class="text-xs text-gray-600"></p>
+                <p class="text-xs text-gray-500 font-mono">
+                  Firebase UID: <span id="user-uid"></span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Detail Data di PostgreSQL (tabel users) -->
+            <div class="p-3 bg-white border border-gray-200 rounded text-xs space-y-1.5">
+              <p class="font-semibold text-gray-800">Data Baris di Tabel <code>users</code> (PostgreSQL):</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700 font-mono text-[11px]">
+                <div class="p-1.5 bg-gray-50 rounded border">
+                  <strong>ID User Database:</strong> <span id="db-user-id">-</span>
+                </div>
+                <div class="p-1.5 bg-gray-50 rounded border">
+                  <strong>Nama di DB:</strong> <span id="db-user-nama">-</span>
+                </div>
+                <div class="p-1.5 bg-gray-50 rounded border">
+                  <strong>Email di DB:</strong> <span id="db-user-email">-</span>
+                </div>
+                <div class="p-1.5 bg-gray-50 rounded border">
+                  <strong>Dibuat Pada:</strong> <span id="db-user-created">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                id="main-btn-logout"
+                type="button"
+                class="bg-red-600 hover:bg-red-700 text-white font-medium text-xs px-3.5 py-2 rounded cursor-pointer transition"
+              >
+                Keluar (Logout)
+              </button>
+              <button
+                id="btn-re-sync"
+                type="button"
+                class="bg-gray-700 hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded cursor-pointer transition"
+              >
+                Uji Sinkronisasi Ulang (/api/auth/sync)
+              </button>
+            </div>
+
+            <!-- Log Response Server JSON -->
+            <div id="sync-result" class="hidden p-3 bg-gray-900 text-gray-100 rounded text-xs font-mono overflow-x-auto"></div>
+          </div>
+
+          <!-- Pesan Status / Notifikasi -->
+          <div id="auth-message" class="hidden mt-3 text-xs p-2.5 rounded"></div>
+        </div>
       </section>
 
-      <!-- 2. Status PostgreSQL -->
-      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
-        <div class="flex items-center justify-between mb-3">
+      <!-- 2. Status PostgreSQL & Skema Tabel -->
+      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
           <h2 class="text-lg font-bold flex items-center gap-2">
-            <span>2. Database PostgreSQL</span>
+            <span>Database PostgreSQL & Skema Tabel</span>
             {dbStatus.ok ? (
               <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
                 Terhubung
@@ -78,266 +203,225 @@ const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
           </h2>
         </div>
 
-        <div class="space-y-3 text-sm">
-          <div class="p-3 rounded bg-gray-50 border border-gray-200">
-            <p><strong>Pesan:</strong> {dbStatus.message}</p>
-            {dbStatus.version && (
-              <p class="text-xs text-gray-600 mt-1 font-mono">{dbStatus.version}</p>
-            )}
-            {dbStatus.ok && (
-              <p class="mt-2 text-xs">
-                <strong>Ekstensi PostGIS:</strong>{' '}
-                {dbStatus.hasPostgis ? (
-                  <span class="text-green-700 font-semibold">Tersedia (Aktif)</span>
-                ) : (
-                  <span class="text-amber-700 font-semibold">Tidak ditemukan</span>
-                )}
-              </p>
-            )}
-          </div>
-
-          <!-- Status Tabel -->
-          <div>
-            <h3 class="font-semibold text-gray-800 mb-2">Verifikasi Skema Tabel (Bagian 10 issue.md):</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {requiredTables.map((tbl) => {
-                const isExists = existingTables.includes(tbl);
-                return (
-                  <div
-                    class={`p-2 rounded border flex items-center justify-between text-xs font-mono ${
-                      isExists
-                        ? 'bg-green-50 border-green-200 text-green-900'
-                        : 'bg-gray-50 border-gray-200 text-gray-500'
-                    }`}
-                  >
-                    <span>{tbl}</span>
-                    <span class="font-semibold">{isExists ? '✓ Ada' : '✗ Belum ada'}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {missingTables.length > 0 && (
-              <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-900 text-xs">
-                <p class="font-semibold mb-1">Panduan Migrasi Skema:</p>
-                <p>
-                  1. Masukkan connection string PostgreSQL Anda pada variabel <code>DATABASE_URL</code> di file <code>.env</code>.
-                </p>
-                <p class="mt-1">
-                  2. Jalankan perintah migrasi di terminal:
-                </p>
-                <pre class="bg-amber-100 p-2 rounded mt-1 font-mono">npm run db:migrate</pre>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. Status Firebase Auth -->
-      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
-        <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
-          <span>3. Firebase Authentication</span>
-          {clientConfigured ? (
-            <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
-              Konfigurasi Client Ditemukan
-            </span>
-          ) : (
-            <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded font-medium">
-              Menunggu Pengisian .env
-            </span>
+        <div class="p-3 rounded bg-gray-50 border border-gray-200 text-xs space-y-1">
+          <p><strong>Status Koneksi:</strong> {dbStatus.message}</p>
+          {dbStatus.version && (
+            <p class="text-gray-600 font-mono text-[11px] truncate">{dbStatus.version}</p>
           )}
-        </h2>
-
-        <div class="space-y-4 text-sm">
-          <!-- Ringkasan Konfigurasi Client & Admin -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            <div class="p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
-              <p class="font-semibold text-gray-800">Firebase Client SDK (Browser):</p>
-              <p>Project ID: <code>{firebaseConfig.projectId || '(belum diisi)'}</code></p>
-              <p>Auth Domain: <code>{firebaseConfig.authDomain || '(belum diisi)'}</code></p>
-              <p>API Key: <code>{firebaseConfig.apiKey ? 'Terpasang' : '(belum diisi)'}</code></p>
-            </div>
-
-            <div class="p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
-              <p class="font-semibold text-gray-800">Firebase Admin SDK (SSR Server Token Verification):</p>
-              <p>Status: {firebaseAdminStatus.configured ? (
-                <span class="text-green-700 font-semibold">Terkonfigurasi</span>
+          {dbStatus.ok && (
+            <p class="pt-1">
+              <strong>Ekstensi PostGIS:</strong>{' '}
+              {dbStatus.hasPostgis ? (
+                <span class="text-green-700 font-semibold">Aktif</span>
               ) : (
-                <span class="text-amber-700 font-medium">Belum lengkap di .env</span>
-              )}</p>
-              <p>Project ID: <code>{firebaseAdminStatus.projectId || '(belum diisi)'}</code></p>
-              <p>Service Account: <code>{firebaseAdminStatus.clientEmail || '(belum diisi)'}</code></p>
-              {firebaseAdminStatus.missingVars && firebaseAdminStatus.missingVars.length > 0 && (
-                <p class="text-amber-800 text-[11px] mt-1">
-                  Variabel belum diisi: <code>{firebaseAdminStatus.missingVars.join(', ')}</code>
-                </p>
+                <span class="text-amber-700">Tidak aktif</span>
               )}
-            </div>
-          </div>
+            </p>
+          )}
+        </div>
 
-          <!-- Uji Coba Login Interaktif -->
-          <div class="p-4 bg-gray-50 border border-gray-200 rounded">
-            <h3 class="font-semibold text-gray-800 mb-2">Uji Coba Otentikasi (Google Auth):</h3>
-            
-            <div id="auth-unconfigured" class="hidden text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200 mb-3">
-              Variabel <code>PUBLIC_FIREBASE_API_KEY</code> dan <code>PUBLIC_FIREBASE_PROJECT_ID</code> masih kosong atau placeholder. 
-              Isi file <code>.env</code> dengan kredensial Firebase Console Anda untuk mengaktifkan tombol login.
-            </div>
-
-            <div id="auth-actions" class="space-y-3">
-              <!-- Tombol Login -->
-              <button
-                id="btn-login"
-                type="button"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Masuk dengan Google (Popup)
-              </button>
-
-              <!-- Panel Pengguna Jika Sudah Login -->
-              <div id="user-profile" class="hidden p-3 bg-white border border-gray-200 rounded space-y-2">
-                <div class="flex items-center gap-3">
-                  <img id="user-photo" src="" alt="Avatar" class="w-10 h-10 rounded-full border border-gray-300" />
-                  <div>
-                    <p id="user-name" class="font-semibold text-sm"></p>
-                    <p id="user-email" class="text-xs text-gray-600"></p>
-                  </div>
+        <!-- Status Tabel -->
+        <div>
+          <h3 class="font-semibold text-xs text-gray-800 mb-2">Verifikasi 5 Tabel di Database:</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {requiredTables.map((tbl) => {
+              const isExists = existingTables.includes(tbl);
+              return (
+                <div
+                  class={`p-2 rounded border text-center text-xs font-mono ${
+                    isExists
+                      ? 'bg-green-50 border-green-200 text-green-900 font-bold'
+                      : 'bg-gray-50 border-gray-200 text-gray-500'
+                  }`}
+                >
+                  <div>{tbl}</div>
+                  <div class="text-[10px] mt-0.5">{isExists ? '✓ Ada' : '✗ Belum ada'}</div>
                 </div>
-                <div class="text-xs text-gray-600 font-mono">
-                  UID: <span id="user-uid"></span>
-                </div>
-
-                <div class="pt-2 flex items-center gap-2">
-                  <button
-                    id="btn-verify"
-                    type="button"
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded cursor-pointer"
-                  >
-                    Uji Verifikasi Token di Server (SSR API)
-                  </button>
-                  <button
-                    id="btn-logout"
-                    type="button"
-                    class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded cursor-pointer"
-                  >
-                    Keluar (Logout)
-                  </button>
-                </div>
-
-                <!-- Hasil Verifikasi SSR -->
-                <div id="verify-result" class="hidden mt-2 p-2 bg-gray-50 border rounded text-xs font-mono"></div>
-              </div>
-
-              <!-- Pesan Error / Status -->
-              <div id="auth-message" class="hidden text-xs p-2 rounded"></div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       <!-- Footer -->
       <footer class="text-center text-xs text-gray-500 py-4">
-        Surabaya Suka Lapor &bull; Fondasi Sistem &bull; Astro SSR + Tailwind CSS + PostgreSQL + Firebase
+        Surabaya Suka Lapor &bull; Astro SSR + Tailwind CSS + PostgreSQL + Firebase Auth
       </footer>
 
     </div>
 
-    <!-- Client-side script untuk interaktivitas Firebase Auth -->
+    <!-- Client-side Script untuk Otentikasi & Sinkronisasi -->
     <script>
       import { isFirebaseConfigured, loginWithGoogle, logoutUser, subscribeAuth } from '../lib/firebase/client';
 
-      const unconfiguredEl = document.getElementById('auth-unconfigured');
-      const btnLogin = document.getElementById('btn-login') as HTMLButtonElement | null;
-      const userProfileEl = document.getElementById('user-profile');
+      // Elements
+      const navGuest = document.getElementById('nav-guest');
+      const navUser = document.getElementById('nav-user');
+      const navUserName = document.getElementById('nav-user-name');
+      const navBtnLogin = document.getElementById('nav-btn-login');
+      const navBtnLogout = document.getElementById('nav-btn-logout');
+
+      const guestPanel = document.getElementById('guest-panel');
+      const userPanel = document.getElementById('user-panel');
+      const mainBtnLogin = document.getElementById('main-btn-login') as HTMLButtonElement | null;
+      const mainBtnLogout = document.getElementById('main-btn-logout');
+      const btnReSync = document.getElementById('btn-re-sync');
+
       const userNameEl = document.getElementById('user-name');
       const userEmailEl = document.getElementById('user-email');
       const userUidEl = document.getElementById('user-uid');
       const userPhotoEl = document.getElementById('user-photo') as HTMLImageElement | null;
-      const btnLogout = document.getElementById('btn-logout');
-      const btnVerify = document.getElementById('btn-verify');
-      const verifyResultEl = document.getElementById('verify-result');
+      const authStatusBadge = document.getElementById('auth-status-badge');
+      const syncBadge = document.getElementById('sync-badge');
+
+      const dbUserId = document.getElementById('db-user-id');
+      const dbUserNama = document.getElementById('db-user-nama');
+      const dbUserEmail = document.getElementById('db-user-email');
+      const dbUserCreated = document.getElementById('db-user-created');
+
+      const syncResultEl = document.getElementById('sync-result');
       const authMessageEl = document.getElementById('auth-message');
+      const unconfiguredEl = document.getElementById('auth-unconfigured');
 
       function showMessage(msg: string, isError = false) {
         if (!authMessageEl) return;
         authMessageEl.textContent = msg;
         authMessageEl.className = isError
-          ? 'text-xs p-2 rounded bg-red-50 text-red-800 border border-red-200 block'
-          : 'text-xs p-2 rounded bg-green-50 text-green-800 border border-green-200 block';
+          ? 'mt-3 text-xs p-2.5 rounded bg-red-50 text-red-800 border border-red-200 block'
+          : 'mt-3 text-xs p-2.5 rounded bg-green-50 text-green-800 border border-green-200 block';
+      }
+
+      // Fungsi untuk menyinkronkan token pengguna ke server Astro SSR
+      async function syncUserWithServer(user: any) {
+        try {
+          showMessage('Memverifikasi token & menyinkronkan ke PostgreSQL...');
+          const token = await user.getIdToken();
+          if (!token) {
+            showMessage('Gagal mendapatkan ID token dari pengguna aktif.', true);
+            return;
+          }
+
+          const res = await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          });
+
+          const data = await res.json();
+
+          if (syncResultEl) {
+            syncResultEl.classList.remove('hidden');
+            syncResultEl.textContent = JSON.stringify(data, null, 2);
+          }
+
+          if (res.ok && data.success && data.user) {
+            const dbU = data.user;
+            if (dbUserId) dbUserId.textContent = `#${dbU.id}`;
+            if (dbUserNama) dbUserNama.textContent = dbU.nama || '(tanpa nama)';
+            if (dbUserEmail) dbUserEmail.textContent = dbU.email || '-';
+            if (dbUserCreated) dbUserCreated.textContent = new Date(dbU.dibuat_pada).toLocaleString('id-ID');
+            if (syncBadge) {
+              syncBadge.textContent = '✓ Tersinkron ke PostgreSQL';
+              syncBadge.className = 'bg-green-100 text-green-800 text-[11px] px-2 py-0.5 rounded font-medium';
+            }
+            showMessage(`Berhasil login! Akun disinkronkan ke tabel users (ID: #${dbU.id}).`);
+          } else {
+            if (syncBadge) {
+              syncBadge.textContent = '⚠ Gagal sinkron ke database';
+              syncBadge.className = 'bg-amber-100 text-amber-800 text-[11px] px-2 py-0.5 rounded font-medium';
+            }
+            showMessage(data.error || 'Server menolak verifikasi token.', true);
+          }
+        } catch (err: any) {
+          showMessage(err.message || 'Gagal menghubungi server.', true);
+        }
       }
 
       if (!isFirebaseConfigured()) {
         if (unconfiguredEl) unconfiguredEl.classList.remove('hidden');
-        if (btnLogin) btnLogin.disabled = true;
+        if (mainBtnLogin) mainBtnLogin.disabled = true;
+        if (navBtnLogin) (navBtnLogin as HTMLButtonElement).disabled = true;
       } else {
-        // Pantau status login
         let currentUser: any = null;
 
-        subscribeAuth((user) => {
+        // Pantau status otentikasi Firebase
+        subscribeAuth(async (user) => {
           currentUser = user;
           if (user) {
-            if (btnLogin) btnLogin.classList.add('hidden');
-            if (userProfileEl) userProfileEl.classList.remove('hidden');
+            // Mode Pengguna Login
+            if (navGuest) navGuest.classList.add('hidden');
+            if (navUser) {
+              navUser.classList.remove('hidden');
+              navUser.classList.add('flex');
+            }
+            if (navUserName) navUserName.textContent = user.displayName || user.email || 'Pengguna';
+
+            if (guestPanel) guestPanel.classList.add('hidden');
+            if (userPanel) userPanel.classList.remove('hidden');
+
+            if (authStatusBadge) {
+              authStatusBadge.textContent = 'Terotentikasi';
+              authStatusBadge.className = 'bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium';
+            }
+
             if (userNameEl) userNameEl.textContent = user.displayName || 'Tanpa Nama';
             if (userEmailEl) userEmailEl.textContent = user.email || '';
             if (userUidEl) userUidEl.textContent = user.uid;
-            if (userPhotoEl) userPhotoEl.src = user.photoURL || 'https://via.placeholder.com/40';
+            if (userPhotoEl) userPhotoEl.src = user.photoURL || 'https://via.placeholder.com/48';
+
+            // Jalankan sinkronisasi ke server
+            await syncUserWithServer(user);
           } else {
-            if (btnLogin) btnLogin.classList.remove('hidden');
-            if (userProfileEl) userProfileEl.classList.add('hidden');
-            if (verifyResultEl) verifyResultEl.classList.add('hidden');
+            // Mode Pengunjung Publik
+            if (navGuest) navGuest.classList.remove('hidden');
+            if (navUser) {
+              navUser.classList.add('hidden');
+              navUser.classList.remove('flex');
+            }
+            if (guestPanel) guestPanel.classList.remove('hidden');
+            if (userPanel) userPanel.classList.add('hidden');
+            if (syncResultEl) syncResultEl.classList.add('hidden');
+
+            if (authStatusBadge) {
+              authStatusBadge.textContent = 'Pengunjung Publik';
+              authStatusBadge.className = 'bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5 rounded font-medium';
+            }
+
+            if (dbUserId) dbUserId.textContent = '-';
+            if (dbUserNama) dbUserNama.textContent = '-';
+            if (dbUserEmail) dbUserEmail.textContent = '-';
+            if (dbUserCreated) dbUserCreated.textContent = '-';
           }
         });
 
-        btnLogin?.addEventListener('click', async () => {
+        // Handler Login
+        const handleLogin = async () => {
           try {
             showMessage('Membuka popup Google login...');
             await loginWithGoogle();
-            showMessage('Berhasil login dengan Google!');
           } catch (err: any) {
             showMessage(err.message || 'Gagal login.', true);
           }
-        });
+        };
 
-        btnLogout?.addEventListener('click', async () => {
+        // Handler Logout
+        const handleLogout = async () => {
           try {
             await logoutUser();
-            showMessage('Berhasil logout.');
+            showMessage('Anda telah keluar.');
           } catch (err: any) {
             showMessage(err.message || 'Gagal logout.', true);
           }
-        });
+        };
 
-        btnVerify?.addEventListener('click', async () => {
-          if (!currentUser) {
-            showMessage('Silakan login terlebih dahulu sebelum menguji verifikasi token.', true);
-            return;
-          }
-          try {
-            showMessage('Mengambil ID token dari Firebase Auth & mengirim ke /api/auth/verify...');
-            const token = await currentUser.getIdToken();
-            if (!token) {
-              showMessage('Gagal memperoleh ID token dari akun aktif.', true);
-              return;
-            }
+        navBtnLogin?.addEventListener('click', handleLogin);
+        mainBtnLogin?.addEventListener('click', handleLogin);
+        navBtnLogout?.addEventListener('click', handleLogout);
+        mainBtnLogout?.addEventListener('click', handleLogout);
 
-            const res = await fetch('/api/auth/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token }),
-            });
-            const data = await res.json();
-            if (verifyResultEl) {
-              verifyResultEl.classList.remove('hidden');
-              verifyResultEl.textContent = JSON.stringify(data, null, 2);
-            }
-            if (res.ok && data.success) {
-              showMessage('Verifikasi server berhasil!');
-            } else {
-              showMessage(data.error || 'Server menolak verifikasi token.', true);
-            }
-          } catch (err: any) {
-            showMessage(err.message || 'Gagal menghubungi endpoint verifikasi.', true);
+        btnReSync?.addEventListener('click', async () => {
+          if (currentUser) {
+            await syncUserWithServer(currentUser);
           }
         });
       }

@@ -101,3 +101,47 @@ export async function checkDatabaseConnection(): Promise<DbStatus> {
     };
   }
 }
+
+export interface DbUser {
+  id: number;
+  firebase_uid: string;
+  nama: string | null;
+  email: string;
+  dibuat_pada: Date;
+}
+
+/**
+ * Membuat atau memperbarui data pengguna di tabel users berdasarkan firebase_uid (UPSERT).
+ */
+export async function syncUser(
+  firebaseUid: string,
+  email: string,
+  nama?: string | null
+): Promise<DbUser> {
+  const sql = `
+    INSERT INTO users (firebase_uid, nama, email)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (firebase_uid)
+    DO UPDATE SET
+      nama = COALESCE(EXCLUDED.nama, users.nama),
+      email = EXCLUDED.email
+    RETURNING id, firebase_uid, nama, email, dibuat_pada;
+  `;
+  const result = await query<DbUser>(sql, [firebaseUid, nama || null, email]);
+  return result.rows[0]!;
+}
+
+/**
+ * Mengambil data pengguna dari tabel users berdasarkan firebase_uid.
+ */
+export async function getUserByFirebaseUid(firebaseUid: string): Promise<DbUser | null> {
+  const sql = `
+    SELECT id, firebase_uid, nama, email, dibuat_pada
+    FROM users
+    WHERE firebase_uid = $1
+    LIMIT 1;
+  `;
+  const result = await query<DbUser>(sql, [firebaseUid]);
+  return result.rows[0] || null;
+}
+

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { verifyFirebaseToken } from '../../../lib/firebase/admin';
+import { syncUser } from '../../../lib/db';
 
 export const prerender = false;
 
@@ -32,15 +33,28 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const decodedToken = await verifyFirebaseToken(token);
 
+    // Sinkronisasi data ke PostgreSQL tabel users
+    let dbUser = null;
+    try {
+      dbUser = await syncUser(
+        decodedToken.uid,
+        decodedToken.email || '',
+        decodedToken.name || null
+      );
+    } catch (dbErr: any) {
+      console.error('Peringatan: Gagal menyinkronkan user ke PostgreSQL:', dbErr.message);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Token berhasil diverifikasi oleh server (Firebase Admin SDK)!',
+        message: 'Token berhasil diverifikasi dan disinkronkan ke tabel users!',
         user: {
           uid: decodedToken.uid,
           email: decodedToken.email,
           name: decodedToken.name,
           picture: decodedToken.picture,
+          databaseUser: dbUser,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
