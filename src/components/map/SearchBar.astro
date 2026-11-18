@@ -1,0 +1,46 @@
+---
+// SearchBar Komponen - Pencarian Alamat/Tempat di Surabaya
+---
+
+<div class="relative w-full max-w-md">
+  <form id="search-form" class="flex items-center gap-1">
+    <div class="relative flex-1">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Cari jalan, tempat, atau kelurahan di Surabaya..."
+        class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+        autocomplete="off"
+      />
+      <button
+        id="search-clear-btn"
+        type="button"
+        class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1"
+        title="Hapus pencarian"
+      >
+        ✕
+      </button>
+    </div>
+
+    <button
+      id="search-submit-btn"
+      type="submit"
+      class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3.5 py-2 rounded font-medium cursor-pointer transition shadow-sm whitespace-nowrap"
+    >
+      Cari
+    </button>
+  </form>
+
+  <!-- Hasil Dropdown Pencarian -->
+  <div
+    id="search-results-dropdown"
+    class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-60 overflow-y-auto text-xs"
+  >
+    <ul id="search-results-list" class="divide-y divide-gray-100"></ul>
+    
+    <!-- Keterangan Batasan Layanan Gratis OpenStreetMap Nominatim -->
+    <div class="p-2 bg-gray-50 border-t border-gray-200 text-[10px] text-gray-500">
+      Didukung oleh <strong>OpenStreetMap Nominatim</strong> (layanan gratis publik, batas wajar 1 req/dtk).
+    </div>
+  </div>
+</div>

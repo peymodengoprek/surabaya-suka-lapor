@@ -58,9 +58,9 @@ Tiga fitur yang membuat aplikasi berguna:
 ## 8. Rincian Fitur per Fase
 
 ### Fase 1: Peta Jalan Interaktif
-- [ ] Peta Kota Surabaya
-- [ ] Cari Lokasi
-- [ ] Filter Kategori
+- [x] Peta Kota Surabaya
+- [x] Cari Lokasi
+- [x] Filter Kategori
 - [ ] _(Sub-fitur ke-4: belum terlihat di peta pikiran, lihat Pertanyaan Terbuka)_
 
 **Kriteria selesai:** Pengguna tanpa login dapat membuka peta, mencari alamat/lokasi, dan menyaring titik laporan berdasarkan kategori.
@@ -168,7 +168,7 @@ comments(id, report_id, user_id, parent_id, isi, dibuat_pada)
 
 - [x] Setup proyek Astro + Tailwind
 - [x] Setup Firebase (Auth) dan PostgreSQL (+ PostGIS) (Fase 0 - Fondasi)
-- [ ] Fase 1: Peta, pencarian lokasi, filter kategori
+- [x] Fase 1: Peta, pencarian lokasi, filter kategori
 - [x] Login Gmail (dimajukan)
 - [ ] Fase 2: Lapor, detail laporan, dukungan, diskusi
 - [ ] Fase 4: Laporan Saya, notifikasi
@@ -203,3 +203,20 @@ comments(id, report_id, user_id, parent_id, isi, dibuat_pada)
   - Pengunjung tanpa login dapat mengakses seluruh halaman publik tanpa hambatan.
   - Tombol Masuk (Google Auth) dan Keluar berfungsi pada header serta panel konten di [src/pages/index.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/index.astro).
   - Nama pengguna ditampilkan secara jelas saat login (`Masuk sebagai: [Nama Pengguna]`), disertai detail ID pengguna di database PostgreSQL.
+
+**Sesi: Fase 1 (Peta Jalan Interaktif)** — Selesai dikerjakan:
+- **Konstanta Kategori Kerusakan (Single Source of Truth):**
+  - Didefinisikan di [src/lib/constants/categories.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/lib/constants/categories.ts): `Lubang`, `Retak`, `Amblas`, `Genangan/Drainase buruk`, `Aspal terkelupas`, `Lainnya`.
+  - CHECK constraint diterapkan pada tabel `reports` PostgreSQL untuk menjaga konsistensi data.
+- **Script Data Uji (Seed):**
+  - Tersedia via `npm run db:seed` ([scripts/seed.js](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/scripts/seed.js)) yang memasukkan 10 laporan contoh tersebar di berbagai titik Surabaya (Wonokromo, Gubeng, Tegalsari, Sukolilo, Rungkut, Sawahan, Tandes, Kenjeran, Wiyung, Tambaksari).
+  - Semua data uji ditandai jelas `[DATA UJI]` dan dapat dibersihkan kapan saja dengan perintah `npm run db:seed -- --clean`.
+- **Endpoint API Laporan & Pencarian Lokasi:**
+  - [src/pages/api/reports/index.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/api/reports/index.ts) mengembalikan data laporan dalam format JSON lengkap dengan koordinat `latitude` dan `longitude` yang diekstrak dari kolom PostGIS `GEOGRAPHY(Point)`.
+  - [src/pages/api/locations/search.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/api/locations/search.ts) menyediakan proxy pencarian tempat/jalan gratis berbasis OpenStreetMap Nominatim yang dibatasi pada area Kota Surabaya.
+- **Peta Interaktif Publik (Leaflet + OpenStreetMap):**
+  - Halaman publik [src/pages/index.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/index.astro) berpusat di Surabaya (`lat: -7.2575, lng: 112.7521`).
+  - Arsitektur modular: logika peta di [src/lib/map/](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/lib/map/) dan komponen UI terpisah di [src/components/map/](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/components/map/) ([SearchBar.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/components/map/SearchBar.astro), [CategoryFilter.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/components/map/CategoryFilter.astro), [MapContainer.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/components/map/MapContainer.astro), [ReportPopup.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/components/map/ReportPopup.ts)).
+  - Fitur penanda interaktif: mengklik penanda menampilkan popup kategori, nomor laporan, status, dan keterangan singkat.
+  - Filter kategori dinamis menyaring penanda peta tanpa memuat ulang halaman.
+  - Pencarian lokasi memindahkan fokus kamera peta ke lokasi tujuan secara mulus.

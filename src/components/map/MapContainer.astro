@@ -1,0 +1,40 @@
+---
+// MapContainer Komponen - Wadah visual untuk peta Leaflet
+---
+
+<div class="relative w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100">
+  
+  <!-- Kontainer Peta Leaflet -->
+  <div id="map-view" class="w-full h-[520px] sm:h-[620px] z-0"></div>
+
+  <!-- Kontrol Mengambang: Reset Pusat Surabaya & Info Jumlah Laporan -->
+  <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
+    <div id="report-count-badge" class="bg-white/90 backdrop-blur-xs border border-gray-300 text-gray-800 text-xs px-2.5 py-1.5 rounded shadow-sm font-medium">
+      Memuat laporan...
+    </div>
+
+    <button
+      id="btn-recenter"
+      type="button"
+      class="bg-white/95 hover:bg-white text-gray-800 hover:text-blue-600 border border-gray-300 text-xs px-2.5 py-1.5 rounded shadow-sm font-medium cursor-pointer transition flex items-center gap-1"
+      title="Kembali ke pusat Surabaya"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+      </svg>
+      <span>Surabaya</span>
+    </button>
+  </div>
+
+  <!-- Loading Overlay Kecil -->
+  <div
+    id="map-loading"
+    class="hidden absolute inset-0 bg-white/50 backdrop-blur-2xs z-20 flex items-center justify-center text-xs text-gray-700 font-medium"
+  >
+    <div class="bg-white p-3 rounded shadow-md border flex items-center gap-2">
+      <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <span>Memuat titik laporan...</span>
+    </div>
+  </div>
+
+</div>

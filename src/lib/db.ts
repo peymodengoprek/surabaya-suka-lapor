@@ -145,3 +145,38 @@ export async function getUserByFirebaseUid(firebaseUid: string): Promise<DbUser 
   return result.rows[0] || null;
 }
 
+export interface ReportItem {
+  id: number;
+  user_id: number;
+  kategori: string;
+  keterangan: string | null;
+  status: string;
+  latitude: number;
+  longitude: number;
+  dibuat_pada: Date;
+}
+
+/**
+ * Mengambil daftar laporan dari tabel reports (dengan opsi filter kategori).
+ * Menghasilkan koordinat latitude dan longitude dari tipe GEOGRAPHY(Point).
+ */
+export async function getReports(kategori?: string | null): Promise<ReportItem[]> {
+  const sql = `
+    SELECT 
+      id,
+      user_id,
+      kategori,
+      keterangan,
+      status,
+      ST_Y(lokasi::geometry) AS latitude,
+      ST_X(lokasi::geometry) AS longitude,
+      dibuat_pada
+    FROM reports
+    WHERE ($1::text IS NULL OR $1 = '' OR kategori = $1)
+    ORDER BY dibuat_pada DESC;
+  `;
+  const result = await query<ReportItem>(sql, [kategori || null]);
+  return result.rows;
+}
+
+

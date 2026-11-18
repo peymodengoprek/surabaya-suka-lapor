@@ -7,7 +7,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "db:migrate": "node scripts/migrate.js"
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node --experimental-strip-types scripts/seed.js"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.13",
@@ -16,10 +17,12 @@
     "dotenv": "^18.0.10",
     "firebase": "^13.4.0",
     "firebase-admin": "^14.5.1",
+    "leaflet": "^1.9.4",
     "pg": "^8.23.1",
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^22.13.4",
     "@types/pg": "^8.11.11"
   }

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS reports (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kategori VARCHAR(100) NOT NULL,
+    kategori VARCHAR(100) NOT NULL CHECK (kategori IN ('Lubang', 'Retak', 'Amblas', 'Genangan/Drainase buruk', 'Aspal terkelupas', 'Lainnya')),
     keterangan TEXT,
     lokasi GEOGRAPHY(Point, 4326),
     status VARCHAR(50) NOT NULL DEFAULT 'menunggu',

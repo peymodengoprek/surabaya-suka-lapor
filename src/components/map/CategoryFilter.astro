@@ -1,0 +1,29 @@
+---
+import { REPORT_CATEGORIES } from '../../lib/constants/categories';
+---
+
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+  <span class="text-gray-500 font-medium text-[11px] whitespace-nowrap mr-1">
+    Kategori:
+  </span>
+
+  <!-- Tombol 'Semua' -->
+  <button
+    type="button"
+    data-category="Semua"
+    class="category-filter-btn px-2.5 py-1 rounded border text-xs font-medium cursor-pointer transition whitespace-nowrap bg-blue-600 text-white border-blue-600 shadow-sm"
+  >
+    Semua
+  </button>
+
+  <!-- Tombol Tiap Kategori Kerusakan -->
+  {REPORT_CATEGORIES.map((cat) => (
+    <button
+      type="button"
+      data-category={cat}
+      class="category-filter-btn px-2.5 py-1 rounded border text-xs font-medium cursor-pointer transition whitespace-nowrap bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+    >
+      {cat}
+    </button>
+  ))}
+</div>
