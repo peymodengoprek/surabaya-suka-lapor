@@ -163,10 +163,15 @@ const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
               <p>Status: {firebaseAdminStatus.configured ? (
                 <span class="text-green-700 font-semibold">Terkonfigurasi</span>
               ) : (
-                <span class="text-gray-500">Belum diisi di .env (Opsional untuk Fase 0)</span>
+                <span class="text-amber-700 font-medium">Belum lengkap di .env</span>
               )}</p>
               <p>Project ID: <code>{firebaseAdminStatus.projectId || '(belum diisi)'}</code></p>
               <p>Service Account: <code>{firebaseAdminStatus.clientEmail || '(belum diisi)'}</code></p>
+              {firebaseAdminStatus.missingVars && firebaseAdminStatus.missingVars.length > 0 && (
+                <p class="text-amber-800 text-[11px] mt-1">
+                  Variabel belum diisi: <code>{firebaseAdminStatus.missingVars.join(', ')}</code>
+                </p>
+              )}
             </div>
           </div>
 
@@ -304,10 +309,18 @@ const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
         });
 
         btnVerify?.addEventListener('click', async () => {
-          if (!currentUser) return;
+          if (!currentUser) {
+            showMessage('Silakan login terlebih dahulu sebelum menguji verifikasi token.', true);
+            return;
+          }
           try {
-            showMessage('Mengambil ID token & mengirim ke server SSR...');
+            showMessage('Mengambil ID token dari Firebase Auth & mengirim ke /api/auth/verify...');
             const token = await currentUser.getIdToken();
+            if (!token) {
+              showMessage('Gagal memperoleh ID token dari akun aktif.', true);
+              return;
+            }
+
             const res = await fetch('/api/auth/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -318,7 +331,7 @@ const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
               verifyResultEl.classList.remove('hidden');
               verifyResultEl.textContent = JSON.stringify(data, null, 2);
             }
-            if (res.ok) {
+            if (res.ok && data.success) {
               showMessage('Verifikasi server berhasil!');
             } else {
               showMessage(data.error || 'Server menolak verifikasi token.', true);

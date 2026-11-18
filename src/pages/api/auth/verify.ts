@@ -4,17 +4,32 @@ import { verifyFirebaseToken } from '../../../lib/firebase/admin';
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  let body: any;
   try {
-    const body = await request.json();
-    const token = body?.token;
+    body = await request.json();
+  } catch {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Body request tidak valid (harus JSON format).',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: 'Token ID Firebase wajib disertakan.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+  const token = body?.token;
 
+  if (!token || typeof token !== 'string' || token.trim() === '') {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Token ID Firebase wajib disertakan dalam request body (parameter: "token").',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  try {
     const decodedToken = await verifyFirebaseToken(token);
 
     return new Response(
@@ -31,12 +46,15 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    const isConfigError = errorMsg.includes('Variabel lingkungan Firebase Admin belum lengkap');
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Gagal memverifikasi token.',
+        error: errorMsg,
       }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
+      { status: isConfigError ? 500 : 401, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
