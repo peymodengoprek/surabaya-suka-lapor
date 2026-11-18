@@ -92,9 +92,9 @@ Tiga fitur yang membuat aplikasi berguna:
 
 ### Fase 3: Akun
 **Masuk pakai Gmail**
-- [ ] Daftar dengan Gmail
-- [ ] Masuk dan Keluar
-- [ ] Pakai Tanpa Masuk
+- [x] Daftar dengan Gmail
+- [x] Masuk dan Keluar
+- [x] Pakai Tanpa Masuk
 
 **Kriteria selesai:** Pengguna dapat masuk dan keluar dengan akun Google; pengguna tanpa akun tetap dapat melihat peta dan detail laporan, tetapi tidak dapat melapor, mendukung, atau berkomentar.
 
@@ -169,7 +169,7 @@ comments(id, report_id, user_id, parent_id, isi, dibuat_pada)
 - [x] Setup proyek Astro + Tailwind
 - [x] Setup Firebase (Auth) dan PostgreSQL (+ PostGIS) (Fase 0 - Fondasi)
 - [ ] Fase 1: Peta, pencarian lokasi, filter kategori
-- [ ] Login Gmail (dimajukan)
+- [x] Login Gmail (dimajukan)
 - [ ] Fase 2: Lapor, detail laporan, dukungan, diskusi
 - [ ] Fase 4: Laporan Saya, notifikasi
 - [ ] Uji coba dengan warga di satu kecamatan sebelum peluncuran kota
@@ -192,3 +192,14 @@ comments(id, report_id, user_id, parent_id, isi, dibuat_pada)
   - Template konfigurasi variabel lingkungan disediakan di [.env.example](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/.env.example) dan [.env](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/.env).
 - **Halaman Beranda Pengujian Fondasi:**
   - Halaman SSR [src/pages/index.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/index.astro) dan API [src/pages/api/health.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/api/health.ts) menampilkan indikator status real-time untuk Astro, Tailwind, PostgreSQL, dan Firebase Auth secara fungsional.
+
+**Sesi: Sinkronisasi Login ke Database (Fase 3 Dimajukan)** — Selesai dikerjakan:
+- **Sinkronisasi Baris Pengguna PostgreSQL (UPSERT):**
+  - Fungsi `syncUser(firebaseUid, email, nama)` dan `getUserByFirebaseUid(firebaseUid)` ditambahkan di [src/lib/db.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/lib/db.ts).
+  - Menyimpan atau memperbarui data akun ke tabel `users` secara atomik berdasarkan `firebase_uid`.
+- **Endpoint Sinkronisasi Server SSR:**
+  - Endpoint [src/pages/api/auth/sync.ts](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/api/auth/sync.ts) dibuat untuk memverifikasi ID token Firebase dan langsung menyinkronkan user ke PostgreSQL, mengembalikan data record database (`id`, `firebase_uid`, `nama`, `email`, `dibuat_pada`).
+- **UI Akses Publik & Kontrol Masuk/Keluar:**
+  - Pengunjung tanpa login dapat mengakses seluruh halaman publik tanpa hambatan.
+  - Tombol Masuk (Google Auth) dan Keluar berfungsi pada header serta panel konten di [src/pages/index.astro](file:///C:/Users/Pey/hobi/surabaya-suka-lapor/src/pages/index.astro).
+  - Nama pengguna ditampilkan secara jelas saat login (`Masuk sebagai: [Nama Pengguna]`), disertai detail ID pengguna di database PostgreSQL.
