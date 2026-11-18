@@ -1,0 +1,333 @@
+---
+import '../styles/global.css';
+import { checkDatabaseConnection } from '../lib/db';
+import { getFirebaseAdminStatus } from '../lib/firebase/admin';
+import { firebaseConfig, isFirebaseConfigured } from '../lib/firebase/client';
+
+export const prerender = false;
+
+// Periksa status database di sisi server (SSR)
+const dbStatus = await checkDatabaseConnection();
+const firebaseAdminStatus = getFirebaseAdminStatus();
+const clientConfigured = isFirebaseConfigured();
+
+const requiredTables = ['users', 'reports', 'report_photos', 'supports', 'comments'];
+const existingTables = dbStatus.tables || [];
+const missingTables = requiredTables.filter((t) => !existingTables.includes(t));
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Surabaya Suka Lapor - Uji Fondasi (Fase 0)</title>
+  </head>
+  <body class="bg-gray-100 text-gray-900 p-4 md:p-8 font-sans">
+    <div class="max-w-4xl mx-auto space-y-6">
+      
+      <!-- Header -->
+      <header class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold">Surabaya Suka Lapor</h1>
+            <p class="text-sm text-gray-600 mt-1">
+              Fase 0: Pengujian Fondasi (Astro SSR, Tailwind CSS, PostgreSQL, Firebase Auth)
+            </p>
+          </div>
+          <a
+            href="/api/health"
+            target="_blank"
+            class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded font-mono"
+          >
+            GET /api/health ↗
+          </a>
+        </div>
+      </header>
+
+      <!-- 1. Status Astro & Tailwind CSS -->
+      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
+        <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+          <span>1. Astro (SSR Mode) & Tailwind CSS</span>
+          <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
+            Terhubung & Aktif
+          </span>
+        </h2>
+        <ul class="text-sm space-y-1 text-gray-700">
+          <li>• <strong>Framework:</strong> Astro 7 (Node.js Adapter - SSR Standalone)</li>
+          <li>• <strong>Styling:</strong> Tailwind CSS v4 terkompilasi dan berjalan</li>
+          <li>• <strong>Rendering Mode:</strong> Server-Side Rendering (SSR dinamis per request)</li>
+          <li>• <strong>Waktu Server:</strong> {new Date().toLocaleString('id-ID')}</li>
+        </ul>
+      </section>
+
+      <!-- 2. Status PostgreSQL -->
+      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <span>2. Database PostgreSQL</span>
+            {dbStatus.ok ? (
+              <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
+                Terhubung
+              </span>
+            ) : (
+              <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded font-medium">
+                Belum Terhubung
+              </span>
+            )}
+          </h2>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div class="p-3 rounded bg-gray-50 border border-gray-200">
+            <p><strong>Pesan:</strong> {dbStatus.message}</p>
+            {dbStatus.version && (
+              <p class="text-xs text-gray-600 mt-1 font-mono">{dbStatus.version}</p>
+            )}
+            {dbStatus.ok && (
+              <p class="mt-2 text-xs">
+                <strong>Ekstensi PostGIS:</strong>{' '}
+                {dbStatus.hasPostgis ? (
+                  <span class="text-green-700 font-semibold">Tersedia (Aktif)</span>
+                ) : (
+                  <span class="text-amber-700 font-semibold">Tidak ditemukan</span>
+                )}
+              </p>
+            )}
+          </div>
+
+          <!-- Status Tabel -->
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">Verifikasi Skema Tabel (Bagian 10 issue.md):</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {requiredTables.map((tbl) => {
+                const isExists = existingTables.includes(tbl);
+                return (
+                  <div
+                    class={`p-2 rounded border flex items-center justify-between text-xs font-mono ${
+                      isExists
+                        ? 'bg-green-50 border-green-200 text-green-900'
+                        : 'bg-gray-50 border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    <span>{tbl}</span>
+                    <span class="font-semibold">{isExists ? '✓ Ada' : '✗ Belum ada'}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {missingTables.length > 0 && (
+              <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-900 text-xs">
+                <p class="font-semibold mb-1">Panduan Migrasi Skema:</p>
+                <p>
+                  1. Masukkan connection string PostgreSQL Anda pada variabel <code>DATABASE_URL</code> di file <code>.env</code>.
+                </p>
+                <p class="mt-1">
+                  2. Jalankan perintah migrasi di terminal:
+                </p>
+                <pre class="bg-amber-100 p-2 rounded mt-1 font-mono">npm run db:migrate</pre>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Status Firebase Auth -->
+      <section class="bg-white p-6 rounded-lg border border-gray-300 shadow-sm">
+        <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+          <span>3. Firebase Authentication</span>
+          {clientConfigured ? (
+            <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-medium">
+              Konfigurasi Client Ditemukan
+            </span>
+          ) : (
+            <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded font-medium">
+              Menunggu Pengisian .env
+            </span>
+          )}
+        </h2>
+
+        <div class="space-y-4 text-sm">
+          <!-- Ringkasan Konfigurasi Client & Admin -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
+              <p class="font-semibold text-gray-800">Firebase Client SDK (Browser):</p>
+              <p>Project ID: <code>{firebaseConfig.projectId || '(belum diisi)'}</code></p>
+              <p>Auth Domain: <code>{firebaseConfig.authDomain || '(belum diisi)'}</code></p>
+              <p>API Key: <code>{firebaseConfig.apiKey ? 'Terpasang' : '(belum diisi)'}</code></p>
+            </div>
+
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
+              <p class="font-semibold text-gray-800">Firebase Admin SDK (SSR Server Token Verification):</p>
+              <p>Status: {firebaseAdminStatus.configured ? (
+                <span class="text-green-700 font-semibold">Terkonfigurasi</span>
+              ) : (
+                <span class="text-gray-500">Belum diisi di .env (Opsional untuk Fase 0)</span>
+              )}</p>
+              <p>Project ID: <code>{firebaseAdminStatus.projectId || '(belum diisi)'}</code></p>
+              <p>Service Account: <code>{firebaseAdminStatus.clientEmail || '(belum diisi)'}</code></p>
+            </div>
+          </div>
+
+          <!-- Uji Coba Login Interaktif -->
+          <div class="p-4 bg-gray-50 border border-gray-200 rounded">
+            <h3 class="font-semibold text-gray-800 mb-2">Uji Coba Otentikasi (Google Auth):</h3>
+            
+            <div id="auth-unconfigured" class="hidden text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200 mb-3">
+              Variabel <code>PUBLIC_FIREBASE_API_KEY</code> dan <code>PUBLIC_FIREBASE_PROJECT_ID</code> masih kosong atau placeholder. 
+              Isi file <code>.env</code> dengan kredensial Firebase Console Anda untuk mengaktifkan tombol login.
+            </div>
+
+            <div id="auth-actions" class="space-y-3">
+              <!-- Tombol Login -->
+              <button
+                id="btn-login"
+                type="button"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Masuk dengan Google (Popup)
+              </button>
+
+              <!-- Panel Pengguna Jika Sudah Login -->
+              <div id="user-profile" class="hidden p-3 bg-white border border-gray-200 rounded space-y-2">
+                <div class="flex items-center gap-3">
+                  <img id="user-photo" src="" alt="Avatar" class="w-10 h-10 rounded-full border border-gray-300" />
+                  <div>
+                    <p id="user-name" class="font-semibold text-sm"></p>
+                    <p id="user-email" class="text-xs text-gray-600"></p>
+                  </div>
+                </div>
+                <div class="text-xs text-gray-600 font-mono">
+                  UID: <span id="user-uid"></span>
+                </div>
+
+                <div class="pt-2 flex items-center gap-2">
+                  <button
+                    id="btn-verify"
+                    type="button"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded cursor-pointer"
+                  >
+                    Uji Verifikasi Token di Server (SSR API)
+                  </button>
+                  <button
+                    id="btn-logout"
+                    type="button"
+                    class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded cursor-pointer"
+                  >
+                    Keluar (Logout)
+                  </button>
+                </div>
+
+                <!-- Hasil Verifikasi SSR -->
+                <div id="verify-result" class="hidden mt-2 p-2 bg-gray-50 border rounded text-xs font-mono"></div>
+              </div>
+
+              <!-- Pesan Error / Status -->
+              <div id="auth-message" class="hidden text-xs p-2 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="text-center text-xs text-gray-500 py-4">
+        Surabaya Suka Lapor &bull; Fondasi Sistem &bull; Astro SSR + Tailwind CSS + PostgreSQL + Firebase
+      </footer>
+
+    </div>
+
+    <!-- Client-side script untuk interaktivitas Firebase Auth -->
+    <script>
+      import { isFirebaseConfigured, loginWithGoogle, logoutUser, subscribeAuth } from '../lib/firebase/client';
+
+      const unconfiguredEl = document.getElementById('auth-unconfigured');
+      const btnLogin = document.getElementById('btn-login') as HTMLButtonElement | null;
+      const userProfileEl = document.getElementById('user-profile');
+      const userNameEl = document.getElementById('user-name');
+      const userEmailEl = document.getElementById('user-email');
+      const userUidEl = document.getElementById('user-uid');
+      const userPhotoEl = document.getElementById('user-photo') as HTMLImageElement | null;
+      const btnLogout = document.getElementById('btn-logout');
+      const btnVerify = document.getElementById('btn-verify');
+      const verifyResultEl = document.getElementById('verify-result');
+      const authMessageEl = document.getElementById('auth-message');
+
+      function showMessage(msg: string, isError = false) {
+        if (!authMessageEl) return;
+        authMessageEl.textContent = msg;
+        authMessageEl.className = isError
+          ? 'text-xs p-2 rounded bg-red-50 text-red-800 border border-red-200 block'
+          : 'text-xs p-2 rounded bg-green-50 text-green-800 border border-green-200 block';
+      }
+
+      if (!isFirebaseConfigured()) {
+        if (unconfiguredEl) unconfiguredEl.classList.remove('hidden');
+        if (btnLogin) btnLogin.disabled = true;
+      } else {
+        // Pantau status login
+        let currentUser: any = null;
+
+        subscribeAuth((user) => {
+          currentUser = user;
+          if (user) {
+            if (btnLogin) btnLogin.classList.add('hidden');
+            if (userProfileEl) userProfileEl.classList.remove('hidden');
+            if (userNameEl) userNameEl.textContent = user.displayName || 'Tanpa Nama';
+            if (userEmailEl) userEmailEl.textContent = user.email || '';
+            if (userUidEl) userUidEl.textContent = user.uid;
+            if (userPhotoEl) userPhotoEl.src = user.photoURL || 'https://via.placeholder.com/40';
+          } else {
+            if (btnLogin) btnLogin.classList.remove('hidden');
+            if (userProfileEl) userProfileEl.classList.add('hidden');
+            if (verifyResultEl) verifyResultEl.classList.add('hidden');
+          }
+        });
+
+        btnLogin?.addEventListener('click', async () => {
+          try {
+            showMessage('Membuka popup Google login...');
+            await loginWithGoogle();
+            showMessage('Berhasil login dengan Google!');
+          } catch (err: any) {
+            showMessage(err.message || 'Gagal login.', true);
+          }
+        });
+
+        btnLogout?.addEventListener('click', async () => {
+          try {
+            await logoutUser();
+            showMessage('Berhasil logout.');
+          } catch (err: any) {
+            showMessage(err.message || 'Gagal logout.', true);
+          }
+        });
+
+        btnVerify?.addEventListener('click', async () => {
+          if (!currentUser) return;
+          try {
+            showMessage('Mengambil ID token & mengirim ke server SSR...');
+            const token = await currentUser.getIdToken();
+            const res = await fetch('/api/auth/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token }),
+            });
+            const data = await res.json();
+            if (verifyResultEl) {
+              verifyResultEl.classList.remove('hidden');
+              verifyResultEl.textContent = JSON.stringify(data, null, 2);
+            }
+            if (res.ok) {
+              showMessage('Verifikasi server berhasil!');
+            } else {
+              showMessage(data.error || 'Server menolak verifikasi token.', true);
+            }
+          } catch (err: any) {
+            showMessage(err.message || 'Gagal menghubungi endpoint verifikasi.', true);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
